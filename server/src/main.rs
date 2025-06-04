@@ -1,5 +1,6 @@
 mod error;
 mod model;
+mod schema;
 
 use std::{env, net::SocketAddr, sync::Arc};
 
@@ -21,6 +22,8 @@ use diesel_async::{
 };
 
 use error::Error;
+
+use crate::model::*;
 
 type Pool = bb8::Pool<AsyncDieselConnectionManager<AsyncPgConnection>>;
 type DbConnection<'a> = bb8::PooledConnection<'a, AsyncDieselConnectionManager<AsyncPgConnection>>;
@@ -77,34 +80,79 @@ async fn get_house(
     let mut conn = state.get_db_connection().await?;
 
     model::houses::table
-        .select(model::House::as_select())
+        .select(House::as_select())
         .limit(1)
         .load(&mut conn)
         .await
         .map_err(Error::from_internal)?
-        .iter()
+        .into_iter()
         .next()
-        .ok_or(Error::HouseNotFound)
-        .map(|resource| {
+        .ok_or(Error::NotFound)
+        .map(|result| {
             (
                 StatusCode::OK,
-                Json(shared::House {
-                    name: resource.name.clone()
-                })
+                Json(result.into())
             )
         })
 }
 
-async fn list_rooms() -> String {
-    "list_rooms".to_string()
+async fn list_rooms(
+    State(state): State<Arc<AppState>>
+) -> Result<(StatusCode, Json<Vec<shared::Room>>), Error> {
+    let mut conn = state.get_db_connection().await?;
+
+    let rooms: Vec<shared::Room> = rooms::table
+        .select(Room::as_select())
+        .load(&mut conn)
+        .await
+        .map_err(Error::from_internal)?
+        .into_iter()
+        .map(Into::into)
+        .collect()
+    ;
+
+    Ok((StatusCode::OK, Json(rooms)))
 }
 
-async fn add_room() -> String {
-    "add_room".to_string()
+async fn add_room(
+    State(state): State<Arc<AppState>>,
+    Json(new_room): Json<shared::NewRoom>
+) -> Result<(StatusCode, Json<shared::Room>), Error> {
+    let mut conn = state.get_db_connection().await?;
+
+    let new_room: NewRoom = new_room.into();
+
+    let result = diesel::insert_into(rooms::table)
+        .values(new_room)
+        .returning(Room::as_returning())
+        .get_result(&mut conn)
+        .await
+        .map_err(Error::from_internal)?;
+    
+    Ok((StatusCode::CREATED, Json(result.into())))
 }
 
-async fn get_room(Path(id): Path<String>) -> String {
-    format!("get_room({id})")
+async fn get_room(
+    State(state): State<Arc<AppState>>,
+    Path(id): Path<uuid::Uuid>
+) -> Result<(StatusCode, Json<shared::Room>), Error> {
+    let mut conn = state.get_db_connection().await?;
+
+    model::rooms::table
+        .find(id)
+        .select(Room::as_select())
+        .load(&mut conn)
+        .await
+        .map_err(Error::from_internal)?
+        .into_iter()
+        .next()
+        .ok_or(Error::NotFound)
+        .map(|result| {
+            (
+                StatusCode::OK,
+                Json(result.into())
+            )
+        })
 }
 
 async fn update_room(Path(id): Path<String>) -> String {

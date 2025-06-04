@@ -6,8 +6,8 @@ use axum::{response::{Response, IntoResponse, Json}, http::StatusCode};
 pub enum Error {
     #[error(transparent)]
     Internal(Box<dyn error::Error>),
-    #[error("House not found")]
-    HouseNotFound
+    #[error("Not found")]
+    NotFound
 }
 
 impl Error {
@@ -24,7 +24,7 @@ impl IntoResponse for Error {
 
         match self {
             Self::Internal(_) => (StatusCode::INTERNAL_SERVER_ERROR, Json(error)),
-            Self::HouseNotFound => (StatusCode::NOT_FOUND, Json(error))
+            Self::NotFound => (StatusCode::NOT_FOUND, Json(error))
         }.into_response()
     }
 }

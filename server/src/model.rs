@@ -1,22 +1,47 @@
-use std::time;
+// use std::time;
 
 use diesel::prelude::*;
 
-diesel::table! {
-    houses (id) {
-        id -> Uuid,
-        name -> Varchar,
-        created_at -> Timestamp,
-        updated_at -> Timestamp,
-    }
-}
+pub use super::schema::*;
 
 #[derive(Queryable, Selectable)]
 #[diesel(table_name = houses)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct House {
+    pub name: String,
+}
+
+impl From<House> for shared::House {
+    fn from(value: House) -> Self {
+        Self { name: value.name }
+    }
+}
+
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = rooms)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Room {
     pub id: uuid::Uuid,
     pub name: String,
-    pub created_at: time::SystemTime,
-    pub updated_at: time::SystemTime,
 }
+
+impl From<Room> for shared::Room {
+    fn from(value: Room) -> Self {
+        Self { id: value.id, name: value.name }
+    }
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = rooms)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewRoom {
+    pub name: String,
+}
+
+impl From<shared::NewRoom> for NewRoom {
+    fn from(value: shared::NewRoom) -> Self {
+        Self { name: value.name }
+    }
+}
+
+

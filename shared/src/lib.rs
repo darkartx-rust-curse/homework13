@@ -7,7 +7,12 @@ pub struct House {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Room {
-    pub id: String,
+    pub id: uuid::Uuid,
+    pub name: String
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewRoom {
     pub name: String
 }
 
