@@ -20,3 +20,15 @@ examples = ["dep:tokio", "dep:dotenv", "dep:env_logger"]
 [[example]]
 name = "example1"
 required-features = ["examples"]
+
+[[example]]
+name = "house"
+required-features = ["examples"]
+
+[[example]]
+name = "room"
+required-features = ["examples"]
+
+[[example]]
+name = "device"
+required-features = ["examples"]

@@ -44,4 +44,27 @@ impl From<shared::NewRoom> for NewRoom {
     }
 }
 
+#[derive(Queryable, Selectable)]
+#[diesel(table_name = devices)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct Device {
+    pub id: uuid::Uuid,
+    pub room_id: uuid::Uuid,
+    pub name: String,
+}
+
+impl From<Device> for shared::Device {
+    fn from(value: Device) -> Self {
+        Self { id: value.id, room_id: value.room_id, name: value.name }
+    }
+}
+
+#[derive(Insertable)]
+#[diesel(table_name = devices)]
+#[diesel(check_for_backend(diesel::pg::Pg))]
+pub struct NewDevice {
+    pub room_id: uuid::Uuid,
+    pub name: String,
+}
+
 

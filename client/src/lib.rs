@@ -44,25 +44,35 @@ impl Client {
         self.patch(&path, room).await
     }
 
-    pub async fn get_devices(&self, room_id: String) -> Result<String> {
+    pub async fn delete_room(&self, id: uuid::Uuid) -> Result<()> {
+        let path = format!("/rooms/{id}");
+        self.delete(&path).await
+    }
+
+    pub async fn get_devices(&self, room_id: uuid::Uuid) -> Result<Vec<Device>> {
         let path = format!("/rooms/{room_id}/devices");
         self.get(&path).await
     }
 
-    // pub async fn add_device(&self, room_id: String, name: String) -> Result<String> {
-    //     let path = format!("/rooms/{room_id}/devices");
-    //     self.post(&path).await
-    // }
+    pub async fn add_device(&self, room_id: uuid::Uuid, device: &NewDevice) -> Result<Device> {
+        let path = format!("/rooms/{room_id}/devices");
+        self.post(&path, device).await
+    }
 
-    pub async fn get_device(&self, room_id: String, id: String) -> Result<String> {
+    pub async fn get_device(&self, room_id: uuid::Uuid, id: uuid::Uuid) -> Result<Device> {
         let path = format!("/rooms/{room_id}/devices/{id}");
         self.get(&path).await
     }
 
-    // pub async fn update_device(&self, room_id: String, id: String, name: String) -> Result<String> {
-    //     let path = format!("/rooms/{room_id}/devices/{id}");
-    //     self.patch(&path).await
-    // }
+    pub async fn update_device(&self, room_id: uuid::Uuid, id: uuid::Uuid, payload: &NewDevice) -> Result<Device> {
+        let path = format!("/rooms/{room_id}/devices/{id}");
+        self.patch(&path, payload).await
+    }
+
+    pub async fn delete_device(&self, room_id: uuid::Uuid, id: uuid::Uuid) -> Result<()> {
+        let path = format!("/rooms/{room_id}/devices/{id}");
+        self.delete(&path).await
+    }
 
     pub async fn get_report(&self) -> Result<String> {
         self.get("/report").await
@@ -104,6 +114,26 @@ impl Client {
         log::debug!("Response: {response:?}");
 
         handle_response(response).await
+    }
+
+    async fn delete(&self, path: &str) -> Result<()> {
+        let url = self.make_url(path);
+        log::debug!("Request: DELETE {url}");
+
+        let response = self.client.delete(url).send().await?;
+        log::debug!("Response: {response:?}");
+
+        match response.status() {
+            StatusCode::NO_CONTENT => Ok(()),
+            StatusCode::NOT_FOUND => Err(Error::NotFound),
+            StatusCode::INTERNAL_SERVER_ERROR => {
+                match response.json::<shared::Error>().await {
+                    Ok(error) => Err(Error::ServerError(Some(error.error))),
+                    Err(error) => Err(error.into())
+                }
+            },
+            _ => Err(Error::UnexpectedStatus(response.status()))
+        }
     }
 
     fn make_url(&self, path: &str) -> String {

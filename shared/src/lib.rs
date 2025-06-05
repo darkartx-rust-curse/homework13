@@ -18,7 +18,13 @@ pub struct NewRoom {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Device {
-    pub id: String,
+    pub id: uuid::Uuid,
+    pub room_id: uuid::Uuid,
+    pub name: String
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct NewDevice {
     pub name: String
 }
 
